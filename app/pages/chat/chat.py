@@ -16,9 +16,7 @@ st.title('👤 Chat')
 tab1, tab2 = st.tabs(['Chat', 'Chat History'])
 
 with tab1:
-    # Load messages and replies
-    
-    pass
+    pass    
 
 with tab2:
     # Select a chat from history and load the chat
