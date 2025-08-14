@@ -214,4 +214,4 @@ serviceAccount.json
 tmp
 *.db
 *.zip
-logs
+logs/*
