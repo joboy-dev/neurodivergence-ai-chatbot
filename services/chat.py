@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
-from db.models.chat import Message
+from db.models.chat import Chat, Message
 from services.rag import rag_service
 
 
@@ -10,7 +11,6 @@ class ChatService:
     def create_chat_message(
         cls, 
         db: Session,
-        user_id: str,
         chat_id: str,
         user_message: str
     ):
@@ -31,4 +31,10 @@ class ChatService:
             content=assistant_response,
             chat_id=chat_id,
             role='assistant'
+        )
+        
+        # Update chat last active
+        Chat.update(
+            db=db, id=chat_id,
+            last_active_at=datetime.now(timezone.utc)
         )

@@ -1,4 +1,4 @@
-from langchain_community.document_loaders import TextLoader, DirectoryLoader
+from langchain_community.document_loaders import TextLoader, DirectoryLoader, PyPDFLoader
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 # from langchain_community.vectorstores import FAISS
 from langchain_community.vectorstores.faiss import FAISS
@@ -19,8 +19,8 @@ class RAGService:
     @staticmethod
     @st.cache_resource()
     def _init_resources():
-        logger.info("Initializing DirectoryLoader with path 'data/pdfs'")
-        loader = DirectoryLoader(path="data/pdfs")
+        logger.info("Initializing DirectoryLoader with path 'data'")
+        loader = DirectoryLoader(path="data", glob="**/*.pdf", loader_cls=PyPDFLoader)
         
         logger.info("Loading documents from directory")
         data = loader.load()
@@ -30,21 +30,33 @@ class RAGService:
         
         logger.info("Splitting documents into chunks")
         chunks = text_splitter.split_documents(data)
+        if not data:
+            # st.warning("No files found in 'data'. Add files to enable retrieval.")
+            logger.warning("No documents loaded from 'data'.")
+        if not chunks:
+            # st.warning("No text chunks produced from the loaded documents. Check the file contents.")
+            logger.warning("No chunks produced from documents; initializing an empty vector store placeholder.")
         
         logger.info("Initializing OpenAIEmbeddings")
         embeddings = OpenAIEmbeddings(
             api_key=st.secrets.api_keys.openai_api_key,
-            model="text-embedding-ada-002"
+            # model="text-embedding-ada-002"
+            model="text-embedding-3-small"
         )
         
         logger.info("Initializing ChatOpenAI LLM")
         llm = ChatOpenAI(
             api_key=st.secrets.api_keys.openai_api_key,
-            model_name='gpt-3.5-turbo'
+            # model_name='gpt-3.5-turbo'
+            model_name='gpt-4o-mini'	
         )
         
         logger.info("Creating FAISS vectorstore from document chunks")
-        vectorstore = FAISS.from_documents(chunks, embedding=embeddings)
+        if chunks:
+            vectorstore = FAISS.from_documents(chunks, embedding=embeddings)
+        else:
+            # Initialize a placeholder vector store to avoid runtime errors when there are no docs
+            vectorstore = FAISS.from_texts([""], embedding=embeddings)
         
         logger.info("Initializing ConversationBufferMemory")
         memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)

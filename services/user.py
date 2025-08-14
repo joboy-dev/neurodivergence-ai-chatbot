@@ -5,7 +5,7 @@ import streamlit as st
 
 from db.models.user import User
 from services.auth import AuthService
-from utils.firebase import FirebaseService
+# from utils.firebase import FirebaseService
 from utils.messages import generate_message
 
 
@@ -70,11 +70,13 @@ class UserService:
             user.email = email
         
         if profile_picture_file:
-            user.profile_picture = FirebaseService.upload_file(
-                file=profile_picture_file,
-                upload_folder='users',
-                model_id=user.id
-            )
+            # user.profile_picture = FirebaseService.upload_file(
+            #     file=profile_picture_file,
+            #     upload_folder='users',
+            #     model_id=user.id
+            # )
+            # Temporarily disabled due to Firebase compatibility issues
+            pass
         
         db.commit()
         db.refresh(user)
