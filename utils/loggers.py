@@ -1,5 +1,7 @@
 import logging, os
 
+from utils.settings import BASE_DIR
+
 def create_logger(name: str, log_file: str='logs/app_logs.log') -> logging.Logger:
     """
     Create a logger with the specified name and log file.
@@ -12,7 +14,7 @@ def create_logger(name: str, log_file: str='logs/app_logs.log') -> logging.Logge
         logging.Logger: Configured logger instance.
     """
     
-    os.makedirs("/logs", exist_ok=True)
+    # os.makedirs(os.path.join(BASE_DIR, "logs"), exist_ok=True)
     
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
