@@ -1,4 +1,4 @@
-import logging
+import logging, os
 
 def create_logger(name: str, log_file: str='logs/app_logs.log') -> logging.Logger:
     """
@@ -11,6 +11,8 @@ def create_logger(name: str, log_file: str='logs/app_logs.log') -> logging.Logge
     Returns:
         logging.Logger: Configured logger instance.
     """
+    
+    os.makedirs("/logs", exist_ok=True)
     
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
