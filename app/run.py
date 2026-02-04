@@ -1,5 +1,9 @@
 import streamlit as st
 from services.auth import AuthService
+from app.components.ui import inject_global_styles
+
+inject_global_styles()
+
 
 def load_pages():
     pages = [

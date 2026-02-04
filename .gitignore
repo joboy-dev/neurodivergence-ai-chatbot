@@ -215,3 +215,4 @@ tmp
 *.db
 *.zip
 logs/*
+backup

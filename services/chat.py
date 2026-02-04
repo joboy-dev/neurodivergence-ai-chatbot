@@ -24,8 +24,19 @@ class ChatService:
             role='user',
         )
         
-        # Generate assistant response
-        assistant_response = rag_service.generate_answer(user_message)
+        # Load chat history from DB (all messages before current, for RAG context)
+        _, messages, _ = Message.fetch_by_field(
+            db=db, paginate=False, chat_id=chat_id, order="asc"
+        )
+        # Exclude the current user message we just added; use previous turns as history
+        chat_history = [
+            (msg.role, msg.content) for msg in messages[:-1]
+        ]
+        
+        # Generate assistant response with per-chat history
+        assistant_response = rag_service.generate_answer(
+            user_message, chat_history=chat_history
+        )
         Message.create(
             db=db,
             content=assistant_response,

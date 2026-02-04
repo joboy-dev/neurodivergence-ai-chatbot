@@ -5,6 +5,7 @@ from db.database import load_db
 from services.auth import AuthService
 from services.chat import ChatService
 from db.models.chat import Chat, Message
+from app.components.ui import render_user_bubble, render_assistant_bubble, render_chat_history_item
 
 
 AuthService.protect_page()
@@ -12,150 +13,90 @@ AuthService.protect_page()
 db = load_db()
 current_user = st.session_state.current_user
 selected_chat = st.session_state.get("selected_chat", None)
-tab_index = st.session_state.get("tab_index", 0)
 
-st.title('👤 Chat')
+st.markdown("## Chat")
+st.caption("Ask anything about neurodiversity support. Start a new chat or continue from history.")
 
-tab1, tab2 = st.tabs(['Chat', 'Chat History'])
+tab1, tab2 = st.tabs(["Conversation", "History"])
 
 with tab1:
     if selected_chat is None:
-        st.write("Start a new chat")
-        chat_name = st.text_input("Enter chat name. (Optional)", key="chat_name")
-        new_message = st.text_input("Type your message...", key="new_chat_message")
-        if st.button("Send", key="start_chat_btn") and new_message.strip():
-            # Create a new chat and add the first user message
+        st.markdown("**New conversation**")
+        chat_name = st.text_input(
+            "Chat name (optional)",
+            key="chat_name",
+            placeholder="e.g. Bedtime routines",
+        )
+        new_message = st.text_input(
+            "Your message",
+            key="new_chat_message",
+            placeholder="Type your message here...",
+        )
+        if st.button("Start chat", key="start_chat_btn", type="primary") and new_message.strip():
             chat_obj = Chat.create(
                 db=db,
-                name=chat_name if chat_name.strip() else "Untitled",
+                name=chat_name.strip() or "New chat",
                 last_message=new_message,
                 last_active_at=datetime.now(timezone.utc),
-                user_id=current_user.id
+                user_id=current_user.id,
             )
             ChatService.create_chat_message(
-                db=db, chat_id=chat_obj.id,
-                user_message=new_message
+                db=db, chat_id=chat_obj.id, user_message=new_message
             )
             st.session_state.selected_chat = chat_obj
-            # st.session_state["new_chat_message"] = ""
             st.rerun()
     else:
-        # Display chat messages
+        st.caption(f"Conversation: **{selected_chat.name or 'Untitled'}**")
         _, messages, _ = Message.fetch_by_field(
-            db=db, paginate=False,
-            chat_id=selected_chat.id,
-            order='asc'
+            db=db, paginate=False, chat_id=selected_chat.id, order="asc"
         )
 
-        # Improved chat bubble colors for dark backgrounds
-        user_bubble_bg = "#23272f"  # deep gray for user
-        user_bubble_border = "#4f8cff"
-        user_text_color = "#e3f2fd"
-        user_label_color = "#90caf9"
-
-        assistant_bubble_bg = "#2d223a"  # deep purple for assistant
-        assistant_bubble_border = "#b388ff"
-        assistant_text_color = "#f3e5f5"
-        assistant_label_color = "#ce93d8"
-
         for msg in messages:
-            if msg.role == 'user':
-                st.markdown(
-                    f"""
-                    <div style="
-                        background-color: {user_bubble_bg};
-                        border-radius: 10px;
-                        padding: 14px 20px;
-                        margin-bottom: 12px;
-                        max-width: 70%;
-                        margin-left: auto;
-                        box-shadow: 0 2px 8px rgba(33,150,243,0.10);
-                        border: 1.5px solid {user_bubble_border};
-                        color: {user_text_color};
-                        word-break: break-word;
-                    ">
-                        <strong style="color:{user_label_color};">You:</strong> {msg.content}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+            if msg.role == "user":
+                render_user_bubble(msg.content)
             else:
-                st.markdown(
-                    f"""
-                    <div style="
-                        background-color: {assistant_bubble_bg};
-                        border-radius: 10px;
-                        padding: 14px 20px;
-                        margin-bottom: 12px;
-                        max-width: 70%;
-                        margin-right: auto;
-                        box-shadow: 0 2px 8px rgba(156,39,176,0.10);
-                        border: 1.5px solid {assistant_bubble_border};
-                        color: {assistant_text_color};
-                        word-break: break-word;
-                    ">
-                        <strong style="color:{assistant_label_color};">Assistant:</strong> {msg.content}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+                render_assistant_bubble(msg.content)
 
-        # Input for new message
-        user_input = st.text_input("Type your message...", key="chat_input")
-        if st.button("Send", key="send_msg_btn") and user_input.strip():
-            ChatService.create_chat_message(
-                db=db, chat_id=selected_chat.id,
-                user_message=user_input
+        st.markdown("---")
+        col1, col2 = st.columns([6, 1])
+        with col1:
+            user_input = st.text_input(
+                "Type your message",
+                key="chat_input",
+                placeholder="Message...",
+                label_visibility="collapsed",
             )
-            # st.session_state["chat_input"] = ""
+        with col2:
+            send_clicked = st.button("Send", key="send_msg_btn", type="primary")
+        if send_clicked and user_input.strip():
+            ChatService.create_chat_message(
+                db=db, chat_id=selected_chat.id, user_message=user_input
+            )
+            st.rerun()
+
+        if st.button("New chat", key="new_chat_btn"):
+            st.session_state.selected_chat = None
             st.rerun()
 
 with tab2:
-    # Select a chat from history and load the chat
-
-    st.title("💬 Your Chat History")
-
-    # Fetch all chats for the current user
-    _, user_chats, count = Chat.fetch_by_field(
-        db=db, paginate=False,
-        user_id=current_user.id,
-        sort_by='last_active_at'
+    st.markdown("**Your conversations**")
+    _, user_chats, _ = Chat.fetch_by_field(
+        db=db, paginate=False, user_id=current_user.id, sort_by="last_active_at"
     )
 
     if not user_chats:
-        st.info("No chats found. Start a new conversation!")
+        st.info("No conversations yet. Start one from the **Conversation** tab.")
     else:
         for chat in user_chats:
             last_msg = chat.last_message or "No messages yet."
-            last_active = chat.last_active_at.strftime("%Y-%m-%d %H:%M") if chat.last_active_at else "Never"
-            st.markdown(
-                f"""
-                <div style="
-                    border-radius: 12px;
-                    background: linear-gradient(90deg, #23272f 60%, #2d223a 100%);
-                    padding: 18px 22px;
-                    margin-bottom: 16px;
-                    box-shadow: 0 2px 12px rgba(33,150,243,0.10);
-                    border: 1.5px solid #4f8cff;
-                    display: flex;
-                    flex-direction: column;
-                ">
-                    <div style="font-size: 1.1em; font-weight: 600; color: #90caf9;">
-                        {chat.name or "Untitled Chat"}
-                    </div>
-                    <div style="color: #e3f2fd; margin: 6px 0 4px 0;">
-                        <span style="color:#ce93d8; font-weight:500;">Last:</span> {last_msg}
-                    </div>
-                    <div style="font-size: 0.9em; color: #bdbdbd;">
-                        <span style="color:#90caf9;">Last active:</span> {last_active}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True
+            last_active = (
+                chat.last_active_at.strftime("%b %d, %H:%M")
+                if chat.last_active_at
+                else "—"
             )
-            
-            if st.button("Select Chat", key=chat.id):
+            render_chat_history_item(
+                chat.name or "Untitled", last_msg, last_active, str(chat.id)
+            )
+            if st.button("Open", key=chat.id):
                 st.session_state.selected_chat = chat
-                st.session_state.tab_index = 0  # Set the tab index to 0 (tab1)
-                st.rerun()  # Rerun to update the UI
-            
+                st.rerun()
