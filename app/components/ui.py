@@ -74,7 +74,7 @@ def render_user_bubble(content: str) -> None:
             border-radius: 18px 18px 4px 18px;
             padding: 14px 18px;
             margin: 10px 0;
-            max-width: 78%;
+            max-width: 58%;
             margin-left: auto;
             margin-right: 0;
             color: #e4e4e7;
@@ -87,30 +87,22 @@ def render_user_bubble(content: str) -> None:
         unsafe_allow_html=True,
     )
 
-
 def render_assistant_bubble(content: str) -> None:
-    """Render an assistant message bubble (left-aligned)."""
-    escaped = content.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
-    st.markdown(
-        f"""
-        <div style="
-            background: linear-gradient(135deg, #1e1e2a 0%, #252532 100%);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 18px 18px 18px 4px;
-            padding: 14px 18px;
-            margin: 10px 0;
-            max-width: 78%;
-            margin-right: auto;
-            margin-left: 0;
-            color: #e4e4e7;
-            font-size: 0.95rem;
-            line-height: 1.5;
-            word-break: break-word;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-        ">{escaped}</div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.container():
+        st.markdown(
+            f"""
+            <div style="
+                margin: 5px 0;
+            ">
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # 👇 Markdown rendered properly here
+        st.markdown(content)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 def render_chat_history_item(name: str, last_msg: str, last_active: str, chat_id: str) -> None:

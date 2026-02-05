@@ -120,7 +120,8 @@ class RAGService:
             "input": query,
             "chat_history": langchain_history,
         })
-        return result["answer"]
+        answer = result["answer"]
+        return answer
 
     def retrieve_relevant_context(self, query):
         docs = self.vectorstore.similarity_search(query, k=6)
